@@ -1,0 +1,17 @@
+{
+  "name": "piano-trainer",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-28",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "piano-trainer-prod",
+      "database_id": "REPLACE_WITH_YOUR_PRODUCTION_D1_ID"
+    }
+  ]
+}
