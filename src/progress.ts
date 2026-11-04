@@ -1,11 +1,11 @@
-
+import { SONGS, SONG_BONUS, SONG_NOTE_POINTS } from "../public/song-engine.js";
 
 const profileIds = ["marcel", "adrianka", "przemek"];
 const noCache = { "Cache-Control": "no-store" };
 export function createProgressApi(database: D1Database) {
 function db(){if(!database)throw new Error("D1 database unavailable");return database;}
 const roundPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-type Payload = { profileId?: string; type?: string; awardId?: string; roundId?: string; noteIndex?: number; noteCount?: number; level?: string; tempo?: number; activeSeconds?: number; settings?: {lesson?:string;level?:string;tempo?:number;showFinger?:boolean;direction?:string;mic?:boolean;randomCount?:number} };
+type Payload = { songId?: string; playedNotes?: number[]; profileId?: string; type?: string; awardId?: string; roundId?: string; noteIndex?: number; noteCount?: number; level?: string; tempo?: number; activeSeconds?: number; settings?: {lesson?:string;level?:string;tempo?:number;showFinger?:boolean;direction?:string;mic?:boolean;randomCount?:number} };
 
 async function profile(id: string) {
   return db().prepare("SELECT id,stars,hits,lessons,points,practice_day,practice_seconds,settings_json FROM profiles WHERE id=?").bind(id).first();
@@ -43,9 +43,27 @@ async function POST(request: Request) {
 
     if (data.type === "settings") {
       const v = data.settings;
-      if (!v || !["right","left","exercise5","exercise6","original5","original6"].includes(v.lesson || "") || !["easy","medium","random"].includes(v.level || "") || typeof v.tempo !== "number" || !Number.isFinite(v.tempo) || v.tempo < .5 || v.tempo > 5 || typeof v.showFinger !== "boolean" || !["auto","horizontal","vertical"].includes(v.direction || "") || typeof v.mic !== "boolean" || !Number.isInteger(v.randomCount) || v.randomCount! < 5 || v.randomCount! > 100) return Response.json({error:"Nieprawidłowe ustawienia."},{status:400});
+      if (!v || !["right","left","exercise5","exercise6","original5","original6","ragtime","piwnica"].includes(v.lesson || "") || !["easy","medium","random"].includes(v.level || "") || typeof v.tempo !== "number" || !Number.isFinite(v.tempo) || v.tempo < .5 || v.tempo > 5 || typeof v.showFinger !== "boolean" || !["auto","horizontal","vertical"].includes(v.direction || "") || typeof v.mic !== "boolean" || !Number.isInteger(v.randomCount) || v.randomCount! < 5 || v.randomCount! > 100) return Response.json({error:"Nieprawidłowe ustawienia."},{status:400});
       await db().prepare("UPDATE profiles SET settings_json=? WHERE id=?").bind(JSON.stringify(v),id).run();
       return Response.json({profile:await profile(id)}, {headers:noCache});
+    }
+
+    if (data.type === "song") {
+      if (!roundPattern.test(data.roundId || "") || !Object.hasOwn(SONGS, data.songId || "")) return Response.json({error:"Nieprawidłowy utwór."},{status:400});
+      const song = SONGS[data.songId as keyof typeof SONGS];
+      const played = data.playedNotes;
+      if (!Array.isArray(played) || played.length !== song.sequence.length || !song.sequence.every((m: number, i: number) => played[i] === m)) return Response.json({error:"Nie zagrano całego utworu z wymaganym powtórzeniem."},{status:400});
+      const base = song.sequence.length * SONG_NOTE_POINTS;
+      const total = base + SONG_BONUS;
+      // D1 batch jest transakcją. changes() wiąże naliczenie z nowym zdarzeniem:
+      // ponowienie tego samego żądania nie może drugi raz przyznać premii.
+      const [inserted] = await db().batch([
+        db().prepare("INSERT OR IGNORE INTO score_events(id,profile_id,round_id,kind,note_index,points,created_at) VALUES (?,?,?,?,?,?,?)")
+          .bind(`${data.roundId}-song`,id,data.roundId,`song:${data.songId}`,null,total,new Date().toISOString()),
+        db().prepare("UPDATE profiles SET stars=stars+CAST((points+?)/30 AS INTEGER),points=(points+?)%30,lessons=lessons+1,hits=hits+? WHERE id=? AND changes()=1")
+          .bind(total,total,song.sequence.length,id)
+      ]);
+      return Response.json({profile:await profile(id),breakdown:inserted.meta.changes?{base,bonus:SONG_BONUS,total,notes:song.sequence.length}:null},{headers:noCache});
     }
 
     if (!roundPattern.test(data.roundId || "")) return Response.json({error:"Nieprawidłowa runda."},{status:400});

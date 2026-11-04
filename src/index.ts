@@ -15,8 +15,14 @@ export default {
       return new Response("Method Not Allowed", { status: 405 });
     }
     if (url.pathname === "/" || url.pathname === "/piano") {
-      return Response.redirect(new URL("/piano.html", url).toString(), 302);
+      return new Response(null, {status:302,headers:{Location:new URL("/piano.html?v=1.6", url).toString(),"Cache-Control":"no-store, max-age=0"}});
     }
-    return env.ASSETS.fetch(request);
+    const asset = await env.ASSETS.fetch(request);
+    if (asset.headers.get("Content-Type")?.includes("text/html")) {
+      const response = new Response(asset.body, asset);
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+      return response;
+    }
+    return asset;
   },
 };

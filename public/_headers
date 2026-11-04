@@ -1,0 +1,6 @@
+/piano
+  Cache-Control: no-store, max-age=0
+/piano.html
+  Cache-Control: no-store, max-age=0
+/song-engine.js
+  Cache-Control: no-cache, max-age=0, must-revalidate
