@@ -1,3 +1,4 @@
+import { practiceBreakdown } from "../public/song-practice.js";
 import { SONGS, SONG_BONUS, SONG_NOTE_POINTS } from "../public/song-engine.js";
 
 const profileIds = ["marcel", "adrianka", "przemek"];
@@ -5,7 +6,7 @@ const noCache = { "Cache-Control": "no-store" };
 export function createProgressApi(database: D1Database) {
 function db(){if(!database)throw new Error("D1 database unavailable");return database;}
 const roundPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-type Payload = { songId?: string; playedNotes?: number[]; profileId?: string; type?: string; awardId?: string; roundId?: string; noteIndex?: number; noteCount?: number; level?: string; tempo?: number; activeSeconds?: number; settings?: {lesson?:string;level?:string;tempo?:number;showFinger?:boolean;direction?:string;mic?:boolean;randomCount?:number} };
+type Payload = { barId?: string; complete?: boolean; songId?: string; playedNotes?: number[]; profileId?: string; type?: string; awardId?: string; roundId?: string; noteIndex?: number; noteCount?: number; level?: string; tempo?: number; activeSeconds?: number; settings?: {lesson?:string;level?:string;tempo?:number;showFinger?:boolean;direction?:string;mic?:boolean;randomCount?:number} };
 
 async function profile(id: string) {
   return db().prepare("SELECT id,stars,hits,lessons,points,practice_day,practice_seconds,settings_json FROM profiles WHERE id=?").bind(id).first();
@@ -46,6 +47,21 @@ async function POST(request: Request) {
       if (!v || !["right","left","exercise5","exercise6","original5","original6","ragtime","piwnica"].includes(v.lesson || "") || !["easy","medium","random"].includes(v.level || "") || typeof v.tempo !== "number" || !Number.isFinite(v.tempo) || v.tempo < .5 || v.tempo > 5 || typeof v.showFinger !== "boolean" || !["auto","horizontal","vertical"].includes(v.direction || "") || typeof v.mic !== "boolean" || !Number.isInteger(v.randomCount) || v.randomCount! < 5 || v.randomCount! > 100) return Response.json({error:"Nieprawidłowe ustawienia."},{status:400});
       await db().prepare("UPDATE profiles SET settings_json=? WHERE id=?").bind(JSON.stringify(v),id).run();
       return Response.json({profile:await profile(id)}, {headers:noCache});
+    }
+
+    if (data.type === "song-hit") {
+      if (typeof data.songId !== "string" || !Array.isArray(data.playedNotes) || !roundPattern.test(data.roundId || "") || typeof data.complete !== "boolean" || (data.barId != null && typeof data.barId !== "string")) return Response.json({error:"Nieprawidłowe zdarzenie."},{status:400});
+      let breakdown;
+      try { breakdown=practiceBreakdown(data.songId, data.playedNotes, data.barId, data.complete); }
+      catch { return Response.json({error:"Nieprawidłowe wykonanie."},{status:400}); }
+      const total=breakdown.total;
+      const [inserted]=await db().batch([
+        db().prepare("INSERT OR IGNORE INTO score_events(id,profile_id,round_id,kind,note_index,points,created_at) VALUES (?,?,?,?,?,?,?)")
+          .bind(`${data.roundId}-song-hit`,id,data.roundId,`song-hit:${data.songId}`,null,total,new Date().toISOString()),
+        db().prepare("UPDATE profiles SET stars=stars+CAST((points+?)/30 AS INTEGER),points=(points+?)%30,hits=hits+1,lessons=lessons+? WHERE id=? AND changes()=1")
+          .bind(total,total,data.complete?1:0,id)
+      ]);
+      return Response.json({profile:await profile(id),breakdown:inserted.meta.changes?breakdown:null},{headers:noCache});
     }
 
     if (data.type === "song") {
