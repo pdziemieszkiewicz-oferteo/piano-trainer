@@ -1,0 +1,1 @@
+Podmień pliki w repozytorium, zachowując ścieżki. Nie podmieniaj wrangler.jsonc. Po wdrożeniu otwórz /piano.html?v=2.2. Przycisk „−” zmniejsza partyturę do 40%; „+” zwiększa do 180%.
