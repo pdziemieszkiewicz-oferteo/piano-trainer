@@ -15,7 +15,7 @@ export default {
       return new Response("Method Not Allowed", { status: 405 });
     }
     if (url.pathname === "/" || url.pathname === "/piano") {
-      return new Response(null, {status:302,headers:{Location:new URL("/piano.html?v=2.0", url).toString(),"Cache-Control":"no-store, max-age=0"}});
+      return new Response(null, {status:302,headers:{Location:new URL("/piano.html?v=2.1", url).toString(),"Cache-Control":"no-store, max-age=0"}});
     }
     const asset = await env.ASSETS.fetch(request);
     if (asset.headers.get("Content-Type")?.includes("text/html")) {

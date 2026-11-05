@@ -1,5 +1,5 @@
-import { practiceBreakdown } from "../public/song-practice.js";
-import { SONGS, SONG_BONUS, SONG_NOTE_POINTS } from "../public/song-engine.js";
+import { practiceBreakdown } from "../public/song-practice-v2.1.js";
+import { SONGS, SONG_BONUS, SONG_NOTE_POINTS } from "../public/song-engine-v2.1.js";
 
 const profileIds = ["marcel", "adrianka", "przemek"];
 const noCache = { "Cache-Control": "no-store" };
