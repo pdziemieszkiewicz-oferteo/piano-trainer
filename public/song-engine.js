@@ -9,7 +9,7 @@ export const SONGS = {
   },
   piwnica: {
     number: 8, title: 'W murowanej piwnicy', image: '/scores/piwnica.png',
-    sequence: [67,62,62,60, 59,60,62, 67,62,62,60, 59,57,55, 55,57,59,57, 59,60,62, 59,64,64,62, 59,57,55],
+    sequence: [67,62,62,60, 59,60,62, 67,62,62,60, 59,57,55, 55,57,59,57, 59,60,62, 59,62,62,60, 59,57,55],
     hint: 'Zagraj całość od lewej do prawej, kolejno oba systemy pięciolinii. Możesz przerwać i zacząć od początku.'
   }
 };
