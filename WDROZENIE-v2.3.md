@@ -1,0 +1,1 @@
+Aktualizacja z 2.2: podmień public/piano.html oraz src/index.ts w jednym commicie. Zachowaj wrangler.jsonc. Po wdrożeniu otwórz /piano; jeżeli widzisz starą wersję, użyj Ctrl+Shift+R albo otwórz /piano?v=2.3. Używaj później stałego adresu /piano.
