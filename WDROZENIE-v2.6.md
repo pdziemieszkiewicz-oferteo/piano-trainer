@@ -1,0 +1,1 @@
+Podmień public/piano.html i dodaj public/song-score-v2.6.js w jednym commicie. Zachowaj wrangler.jsonc. Po wdrożeniu sprawdź v2.6 na /piano.
