@@ -1,4 +1,4 @@
-import { practiceBreakdown } from "../public/song-practice-v2.1.js";
+import { practiceBreakdown } from "../public/song-practice-v2.13.js";
 import { SONGS, SONG_BONUS, SONG_NOTE_POINTS } from "../public/song-engine-v2.1.js";
 
 const profileIds = ["marcel", "adrianka", "przemek"];
@@ -54,6 +54,7 @@ async function POST(request: Request) {
       let breakdown;
       try { breakdown=practiceBreakdown(data.songId, data.playedNotes, data.barId, data.complete); }
       catch { return Response.json({error:"Nieprawidłowe wykonanie."},{status:400}); }
+      if (!breakdown.base) return Response.json({profile:await profile(id),breakdown:null},{headers:noCache});
       const total=breakdown.total;
       const [inserted]=await db().batch([
         db().prepare("INSERT OR IGNORE INTO score_events(id,profile_id,round_id,kind,note_index,points,created_at) VALUES (?,?,?,?,?,?,?)")
