@@ -1,0 +1,1 @@
+W repozytorium z wersją 2.3 podmień public/piano.html. Zachowaj wrangler.jsonc. Po wdrożeniu sprawdź numer v2.4 pod adresem /piano.
