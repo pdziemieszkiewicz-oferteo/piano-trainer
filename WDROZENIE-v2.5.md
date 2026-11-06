@@ -1,0 +1,1 @@
+Podmień public/piano.html z tej paczki. Zachowaj wrangler.jsonc. Po wdrożeniu otwórz /piano i sprawdź v2.5.
