@@ -1,12 +1,12 @@
-import { practiceBreakdown } from "../public/song-practice-v2.13.js";
-import { SONGS, SONG_BONUS, SONG_NOTE_POINTS } from "../public/song-engine-v2.1.js";
+import { practiceBreakdown } from "../public/song-practice-v2.15.js";
+import { SONGS, SONG_BONUS, SONG_NOTE_POINTS } from "../public/song-engine-v2.15.js";
 
 const profileIds = ["marcel", "adrianka", "przemek"];
 const noCache = { "Cache-Control": "no-store" };
 export function createProgressApi(database: D1Database) {
 function db(){if(!database)throw new Error("D1 database unavailable");return database;}
 const roundPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-type Payload = { barId?: string; complete?: boolean; songId?: string; playedNotes?: number[]; profileId?: string; type?: string; awardId?: string; roundId?: string; noteIndex?: number; noteCount?: number; level?: string; tempo?: number; activeSeconds?: number; settings?: {lesson?:string;level?:string;tempo?:number;showFinger?:boolean;direction?:string;mic?:boolean;randomCount?:number} };
+type Payload = { leafOrder?: number[]; barId?: string; complete?: boolean; songId?: string; playedNotes?: number[]; profileId?: string; type?: string; awardId?: string; roundId?: string; noteIndex?: number; noteCount?: number; level?: string; tempo?: number; activeSeconds?: number; settings?: {lesson?:string;level?:string;tempo?:number;showFinger?:boolean;direction?:string;mic?:boolean;randomCount?:number} };
 
 async function profile(id: string) {
   return db().prepare("SELECT id,stars,hits,lessons,points,practice_day,practice_seconds,settings_json FROM profiles WHERE id=?").bind(id).first();
@@ -44,7 +44,7 @@ async function POST(request: Request) {
 
     if (data.type === "settings") {
       const v = data.settings;
-      if (!v || !["right","left","exercise5","exercise6","original5","original6","ragtime","piwnica"].includes(v.lesson || "") || !["easy","medium","random"].includes(v.level || "") || typeof v.tempo !== "number" || !Number.isFinite(v.tempo) || v.tempo < .5 || v.tempo > 5 || typeof v.showFinger !== "boolean" || !["auto","horizontal","vertical"].includes(v.direction || "") || typeof v.mic !== "boolean" || !Number.isInteger(v.randomCount) || v.randomCount! < 5 || v.randomCount! > 100) return Response.json({error:"Nieprawidłowe ustawienia."},{status:400});
+      if (!v || !["right","left","exercise5","exercise6","original5","original6","ragtime","piwnica","musicbox","sharps","leaves"].includes(v.lesson || "") || !["easy","medium","random"].includes(v.level || "") || typeof v.tempo !== "number" || !Number.isFinite(v.tempo) || v.tempo < .5 || v.tempo > 5 || typeof v.showFinger !== "boolean" || !["auto","horizontal","vertical"].includes(v.direction || "") || typeof v.mic !== "boolean" || !Number.isInteger(v.randomCount) || v.randomCount! < 5 || v.randomCount! > 100) return Response.json({error:"Nieprawidłowe ustawienia."},{status:400});
       await db().prepare("UPDATE profiles SET settings_json=? WHERE id=?").bind(JSON.stringify(v),id).run();
       return Response.json({profile:await profile(id)}, {headers:noCache});
     }
@@ -52,7 +52,7 @@ async function POST(request: Request) {
     if (data.type === "song-hit") {
       if (typeof data.songId !== "string" || !Array.isArray(data.playedNotes) || !roundPattern.test(data.roundId || "") || typeof data.complete !== "boolean" || (data.barId != null && typeof data.barId !== "string")) return Response.json({error:"Nieprawidłowe zdarzenie."},{status:400});
       let breakdown;
-      try { breakdown=practiceBreakdown(data.songId, data.playedNotes, data.barId, data.complete); }
+      try { breakdown=practiceBreakdown(data.songId, data.playedNotes, data.barId, data.complete, data.leafOrder); }
       catch { return Response.json({error:"Nieprawidłowe wykonanie."},{status:400}); }
       if (!breakdown.base) return Response.json({profile:await profile(id),breakdown:null},{headers:noCache});
       const total=breakdown.total;
@@ -66,6 +66,7 @@ async function POST(request: Request) {
     }
 
     if (data.type === "song") {
+      if (data.songId === "leaves") return Response.json({error:"Wybierz cztery listki."},{status:400});
       if (!roundPattern.test(data.roundId || "") || !Object.hasOwn(SONGS, data.songId || "")) return Response.json({error:"Nieprawidłowy utwór."},{status:400});
       const song = SONGS[data.songId as keyof typeof SONGS];
       const played = data.playedNotes;

@@ -1,0 +1,1 @@
+Wgraj public/ oraz src/progress.ts z paczki w jednym commicie. Zachowaj wrangler.jsonc. Baza danych nie wymaga migracji.
